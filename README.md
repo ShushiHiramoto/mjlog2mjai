@@ -167,3 +167,6 @@ mjai gem: https://github.com/gimite/mjai
 1. Ruby/Pythonのバージョン
 2. mjai gemが正しくインストールされているか
 3. 入力XMLファイルの形式が正しいか
+
+この端末で実行する際
+python batch_convert_mjlog.py ../phoenix-logs/logs/2026 ../Explainable_Mortal/mortal/built/dataset

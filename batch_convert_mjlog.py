@@ -35,7 +35,7 @@ def convert_mjlog_to_mjai(mjlog_path: Path, output_dir: Path) -> Tuple[bool, str
     output_path = output_dir / f"{mjlog_path.stem}.mjson"
     
     # Run mjai convert command
-    mjai_cmd = 'C:/Ruby34-x64/bin/mjai.bat' if os.name == 'nt' else 'mjai'
+    mjai_cmd = 'C:/Ruby40-x64/bin/mjai.bat' if os.name == 'nt' else 'mjai'
     cmd = [mjai_cmd, 'convert', str(mjlog_path), str(output_path)]
     
     try:
@@ -57,8 +57,25 @@ def convert_mjlog_to_mjai(mjlog_path: Path, output_dir: Path) -> Tuple[bool, str
                 output_path.unlink()
             return False, "Conversion produced empty or no file", output_path
         
-        return True, "Success", output_path
-        
+        final_gz_path = output_dir / f"{mjlog_path.stem}.mjson.gz"
+
+        #add--
+        with open(output_path, 'r', encoding='utf-8') as f_in, gzip.open(final_gz_path, 'wt', encoding='utf-8') as f_out:
+            for line in f_in:
+                if not line.strip():
+                    continue
+                data = json.loads(line)
+                # start_kyoku イベントに kyotaku と scores がなければダミーを補完
+                if data.get('type') == 'start_kyoku':
+                    if 'kyotaku' not in data:
+                        data['kyotaku'] = 0
+                    if 'scores' not in data:
+                        data['scores'] = [25000, 25000, 25000, 25000]
+                f_out.write(json.dumps(data) + '\n')
+        # 補完が終わったら、中間の生 .mjson ファイルは不要なので削除
+        output_path.unlink(missing_ok=True)
+        #--
+        return True, "Success", final_gz_path
     except Exception as e:
         # Clean up any partial file on exception
         if output_path.exists():
@@ -153,6 +170,7 @@ def batch_convert(input_dir: Path, output_dir: Path, validate: bool = False,
     
     # Find all XML files
     xml_files = sorted(input_dir.glob("*.xml"))
+    xml_files.extend(sorted(input_dir.glob("*.mjlog")))
     
     if not xml_files:
         print(f"No XML files found in {input_dir}")
